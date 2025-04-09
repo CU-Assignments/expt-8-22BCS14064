@@ -1,0 +1,101 @@
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/employees")
+public class EmployeeServlet extends HttpServlet {
+
+    // Database credentials
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/your_database_name";
+    private static final String JDBC_USER = "your_username";
+    private static final String JDBC_PASSWORD = "your_password";
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        out.println("<html><head><title>Employee Directory</title></head><body>");
+        out.println("<h2>All Employees</h2>");
+
+        try {
+            // Load JDBC Driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Connect to DB
+            Connection con = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+
+            // Show all employees
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM employees");
+
+            out.println("<table border='1'><tr><th>ID</th><th>Name</th><th>Department</th></tr>");
+            while (rs.next()) {
+                out.println("<tr><td>" + rs.getInt("id") + "</td>");
+                out.println("<td>" + rs.getString("name") + "</td>");
+                out.println("<td>" + rs.getString("department") + "</td></tr>");
+            }
+            out.println("</table>");
+
+            // Search Form
+            out.println("<h2>Search Employee by ID</h2>");
+            out.println("<form method='post' action='employees'>");
+            out.println("Employee ID: <input type='text' name='empId' required>");
+            out.println("<input type='submit' value='Search'>");
+            out.println("</form>");
+
+            con.close();
+        } catch (Exception e) {
+            out.println("<p>Error: " + e.getMessage() + "</p>");
+        }
+
+        out.println("</body></html>");
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        String empId = request.getParameter("empId");
+
+        out.println("<html><head><title>Search Result</title></head><body>");
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection con = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+
+            PreparedStatement ps = con.prepareStatement("SELECT * FROM employees WHERE id = ?");
+            ps.setInt(1, Integer.parseInt(empId));
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                out.println("<h2>Employee Found:</h2>");
+                out.println("<p>ID: " + rs.getInt("id") + "</p>");
+                out.println("<p>Name: " + rs.getString("name") + "</p>");
+                out.println("<p>Department: " + rs.getString("department") + "</p>");
+            } else {
+                out.println("<h2>No employee found with ID: " + empId + "</h2>");
+            }
+
+            out.println("<br><a href='employees'>Back to List</a>");
+            con.close();
+
+        } catch (Exception e) {
+            out.println("<p>Error: " + e.getMessage() + "</p>");
+        }
+
+        out.println("</body></html>");
+    }
+}
