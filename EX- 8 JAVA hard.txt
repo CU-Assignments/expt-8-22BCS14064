@@ -1,0 +1,83 @@
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/attendance")
+public class AttendanceServlet extends HttpServlet {
+
+    // JDBC connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/your_database_name";
+    private static final String DB_USER = "your_username";
+    private static final String DB_PASS = "your_password";
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Display the form
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        out.println("<html><head><title>Student Attendance Portal</title></head><body>");
+        out.println("<h2>Student Attendance Form</h2>");
+        out.println("<form method='post' action='attendance'>");
+        out.println("Student ID: <input type='text' name='studentId' required><br><br>");
+        out.println("Student Name: <input type='text' name='studentName' required><br><br>");
+        out.println("Date (YYYY-MM-DD): <input type='date' name='date' required><br><br>");
+        out.println("Status: <select name='status'>");
+        out.println("<option value='Present'>Present</option>");
+        out.println("<option value='Absent'>Absent</option>");
+        out.println("</select><br><br>");
+        out.println("<input type='submit' value='Submit Attendance'>");
+        out.println("</form></body></html>");
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String studentId = request.getParameter("studentId");
+        String studentName = request.getParameter("studentName");
+        String date = request.getParameter("date");
+        String status = request.getParameter("status");
+
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        try {
+            // Load JDBC driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Connect to DB
+            Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+
+            // Insert attendance
+            String sql = "INSERT INTO attendance (student_id, student_name, date, status) VALUES (?, ?, ?, ?)";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, studentId);
+            ps.setString(2, studentName);
+            ps.setString(3, date);
+            ps.setString(4, status);
+
+            int rows = ps.executeUpdate();
+
+            out.println("<html><body>");
+            if (rows > 0) {
+                out.println("<h3>Attendance recorded successfully!</h3>");
+            } else {
+                out.println("<h3>Failed to record attendance.</h3>");
+            }
+            out.println("<a href='attendance'>Go Back</a>");
+            out.println("</body></html>");
+
+            con.close();
+        } catch (Exception e) {
+            out.println("<p>Error: " + e.getMessage() + "</p>");
+        }
+    }
+}
